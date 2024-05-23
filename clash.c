@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <uchar.h>
 #include <unistd.h>
 #include <errno.h>
 #define INITIAL_CWD_CAPACITY 64
@@ -55,9 +54,9 @@ static void getInput(char* buf){
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
-static void saveInArgV(char **argv, int *args, int i, char *argument) {
+static char **saveInArgV(char **argv, int *args, int i, char *argument) {
 	if(argv == NULL || argument == NULL) {
-		return;
+		return NULL;
 	}
 	if (*args <= i) {
 		*args = (int)1.5 * *args;	
@@ -65,7 +64,7 @@ static void saveInArgV(char **argv, int *args, int i, char *argument) {
 		if (argv == NULL) { die("realloc");}
 	}
 	argv[i] = argument;
-	return;
+	return argv;
 }
 
 static char **createArgs(char *input) {
@@ -91,7 +90,7 @@ static char **createArgs(char *input) {
 		if (argument == NULL) {
 			break;
 		}
-		saveInArgV(argv, &args, i, argument);
+		argv = saveInArgV(argv, &args, i, argument);
 	}	
 	return argv;
 }
@@ -104,7 +103,7 @@ int main(int argc, char** argv){
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
 		printf("%s", input);
-		char **argv = createArgs(input); 
+
 	}
 
 
