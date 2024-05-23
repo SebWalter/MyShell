@@ -6,7 +6,7 @@
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
-
+static int debugSize = 0;
 static void die(char* message){
 	perror(message);
 	exit(EXIT_FAILURE);
@@ -75,12 +75,17 @@ static char **createArgs(char *input) {
 	for(int i = 1;;i++) {
 		char *argument = strtok(NULL, " ");
 		if (argument == NULL) {
+			debugSize = i;						//todo remove
 			break;
 		}
-		if (args <= i) {
-			args = (int)1.5 *args;	
+		if (args -1  < i) {
+			args = (int)(1.5 *args);	
 			argv = realloc(argv, args * sizeof(char*));
 			if (argv == NULL) { die("realloc");}
+		}
+		char *lineBreak = strchr(argument, '\n');
+		if (lineBreak != NULL) {
+			*lineBreak = '\0';
 		}
 		argv[i] = argument;
 	}	
@@ -94,17 +99,14 @@ int main(int argc, char** argv){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
-		argv = createArgs(input);
+		char **args = createArgs(input);
 		if (argv == NULL) {
 			continue;
 		}
-		int i = 0;
-		while (argv[i] != NULL) {				//test prints out all args
-			printf("Argument %d: %s\n",i, argv[i]);
-			i++;
+		for (int i = 0; i < debugSize; i++) {
+			printf("Argument %d: %s\n",i, args[i]);
 		}
 	}
-
 
 	exit(EXIT_SUCCESS);
 }
