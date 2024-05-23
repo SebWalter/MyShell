@@ -53,7 +53,7 @@ static void getInput(char* buf){
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
-static char **createArgs(char *input, int *nArgs) {
+static char **createArgs(char *input, int *nArgc) {
 	if (input == NULL) {
 		fprintf(stderr, "No input given");		//optional Error message, real terminal ignores empty input
 		return NULL;
@@ -74,7 +74,7 @@ static char **createArgs(char *input, int *nArgs) {
 	for(int i = 1;;i++) {
 		char *argument = strtok(NULL, " ");
 		if (argument == NULL) {
-			*nArgs = i;
+			*nArgc = i;
 			break;
 		}
 		if (args -1  < i) {
@@ -98,12 +98,12 @@ int main(int argc, char** argv){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
-		int newArgs = 0;					//is the args for the new Process
-		char **args = createArgs(input, &newArgs);
+		int newArgc = 0;					//is the args for the new Process
+		char **args = createArgs(input, &newArgc);
 		if (argv == NULL) {
 			continue;
 		}
-		for (int i = 0; i < newArgs; i++) {
+		for (int i = 0; i < newArgc; i++) {
 			printf("Argument %d: %s\n",i, args[i]);
 		}
 		free(args);
