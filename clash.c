@@ -54,19 +54,6 @@ static void getInput(char* buf){
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
-static char **saveInArgV(char **argv, int *args, int i, char *argument) {
-	if(argv == NULL || argument == NULL) {
-		return NULL;
-	}
-	if (*args <= i) {
-		*args = (int)1.5 * *args;	
-		argv = realloc(argv, *args * sizeof(char*));
-		if (argv == NULL) { die("realloc");}
-	}
-	argv[i] = argument;
-	return argv;
-}
-
 static char **createArgs(char *input) {
 	if (input == NULL) {
 		fprintf(stderr, "No input given");		//optional Error message, real terminal ignores empty input
@@ -90,7 +77,12 @@ static char **createArgs(char *input) {
 		if (argument == NULL) {
 			break;
 		}
-		argv = saveInArgV(argv, &args, i, argument);
+		if (args <= i) {
+			args = (int)1.5 *args;	
+			argv = realloc(argv, args * sizeof(char*));
+			if (argv == NULL) { die("realloc");}
+		}
+		argv[i] = argument;
 	}	
 	return argv;
 }
@@ -102,8 +94,15 @@ int main(int argc, char** argv){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
-		printf("%s", input);
-
+		argv = createArgs(input);
+		if (argv == NULL) {
+			continue;
+		}
+		int i = 0;
+		while (argv[i] != NULL) {				//test prints out all args
+			printf("Argument %d: %s\n",i, argv[i]);
+			i++;
+		}
 	}
 
 
