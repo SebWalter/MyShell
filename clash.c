@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/wait.h>
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
@@ -100,11 +103,35 @@ int main(int argc, char** argv){
 		getInput(input);
 		int newArgc = 0;					//is the args for the new Process
 		char **args = createArgs(input, &newArgc);
-		if (argv == NULL) {
+		if (args == NULL || args[0] == NULL) {
 			continue;
 		}
 		for (int i = 0; i < newArgc; i++) {
 			printf("Argument %d: %s\n",i, args[i]);
+		}
+		pid_t processID;
+		processID = fork();
+		if (processID == -1) {
+			die("fork");
+		}
+		//Child Process that executes the new command
+		if (processID == 0) {
+			execvp(args[0], args);
+			//the exec function only returns when an error occurs -> error handling
+			die("execvp");
+		}
+		//parent process
+		int exitStatus;
+		pid_t childPid = waitpid(-1,&exitStatus, 0);
+		if (childPid == -1) {
+			die("waitpid");
+		}
+		if (WIFEXITED(exitStatus)) {
+				int exitMessage = WEXITSTATUS(exitStatus);
+				printf("EXITSTATUS [%d]\n", exitMessage);
+		}
+		else {
+			fprintf(stderr, "Process didn't execute properly\n");		
 		}
 		free(args);
 	}
