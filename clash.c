@@ -78,9 +78,10 @@ static char **createArgs(char *input, int *nArgc) {
 		char *argument = strtok(NULL, " ");
 		if (argument == NULL) {
 			*nArgc = i;
+			argv[i] = NULL;                  //execvp needs a null as last entry
 			break;
 		}
-		if (args -1  < i) {
+		if (args -1  <= i) {
 			args = (int)(1.5 *args);	
 			argv = realloc(argv, args * sizeof(char*));
 			if (argv == NULL) { die("realloc");}
@@ -96,7 +97,6 @@ static char **createArgs(char *input, int *nArgc) {
 
 int main(int argc, char** argv){
 
-	printf("%s\n", "hallo, welt");
 	while(1){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
@@ -117,8 +117,12 @@ int main(int argc, char** argv){
 		//Child Process that executes the new command
 		if (processID == 0) {
 			execvp(args[0], args);
+			//When execvp fails, it don't free the heap memory. 
+			//Because it was cloned during fork() i have to free it in the child and parent
+			free(args);
 			//the exec function only returns when an error occurs -> error handling
 			die("execvp");
+
 		}
 		//parent process
 		int exitStatus;
