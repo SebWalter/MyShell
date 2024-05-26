@@ -49,65 +49,81 @@ static void getInput(char* buf){
 			die("fgets");
 		}
 		else{
-			exit(EXIT_SUCCESS);
+			exit(EXIT_SUCCESS);				//Was ist das? Dann exited ja das programm?
 		}
+	}
+	//remove new line character
+	char *newLine = strchr(buf, '\n');
+	if (newLine != NULL) {
+		*newLine = '\0';
 	}
 }
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
-static char **createArgs(char *input, int *nArgc) {
+static char **createArgs(char *input) {
 	if (input == NULL) {
-		fprintf(stderr, "No input given");		//optional Error message, real terminal ignores empty input
 		return NULL;
 	}
-	char **argv = malloc(DEFAULT_ARGS * sizeof(char*));
-	if (argv == NULL) {
+	int argc = DEFAULT_ARGS;
+	char **args = malloc(DEFAULT_ARGS * sizeof(char*));
+	if (args == NULL) {
 		die("malloc");
 	}
-	int args = DEFAULT_ARGS;
 	char *command = strtok(input, " ");
-	//When *command is NULL -> No space in the string that means
-	//that the command has no further arguments
+	//if strtok return NULL the first time the string was empty or an error occured
+	//if a string doesn't contain a token it just returns the original string the first time
 	if (command == NULL) {
-		argv[0] = command;
-		return argv;
+		free(args);
+		fprintf(stderr, "Error input was empty...continue\n");
+		return NULL;
 	}
-	argv[0] = command;
-	for(int i = 1;;i++) {
-		char *argument = strtok(NULL, " ");
-		if (argument == NULL) {
-			*nArgc = i;
-			argv[i] = NULL;                  //execvp needs a null as last entry
-			break;
+	args[0] = command;
+	for (int i = 1;;i++) {
+		char *newToken = strtok(NULL, " ");
+		//if strtok return null (not the first call there arent any new tokens
+		//so we write a NULL in the next position (for execvp) and return
+		if (newToken == NULL) {
+			args[i] = NULL;
+			return args;
 		}
-		if (args -1  <= i) {
-			args = (int)(1.5 *args);	
-			argv = realloc(argv, args * sizeof(char*));
-			if (argv == NULL) { die("realloc");}
+		//argc -1 <= i because we always need a nother space for the NULL * 
+		if (argc -1 <=  i) {
+			argc = (int) argc *1.5;
+			args = realloc(args, argc * sizeof(char*));
+			if (args == NULL) {die("realloc");}
 		}
-		char *lineBreak = strchr(argument, '\n');
-		if (lineBreak != NULL) {
-			*lineBreak = '\0';
-		}
-		argv[i] = argument;
-	}	
-	return argv;
+		args[i] = newToken;
+	}
+	return args;
 }
 
+static int changeDirectory(char **args) {
+	if (args == NULL || args[1] == NULL) {
+		fprintf(stderr, "Error can't cd without new Path\n");
+		return -1;
+	}
+	if  (chdir(args[1]) == -1) {
+		perror("chdir");			//when the chdir fails, it's no big deal, so no exit()
+		errno = 0;
+		return -1;
+	}
+	return 0;
+}
 int main(int argc, char** argv){
 
 	while(1){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
-		int newArgc = 0;					//is the args for the new Process
-		char **args = createArgs(input, &newArgc);
+		char **args = createArgs(input);
 		if (args == NULL || args[0] == NULL) {
 			continue;
 		}
-		for (int i = 0; i < newArgc; i++) {
-			printf("Argument %d: %s\n",i, args[i]);
+		if (strcmp(args[0], "cd") == 0) {
+			changeDirectory(args);
+			free(args);
+			continue;
 		}
 		pid_t processID;
 		processID = fork();
