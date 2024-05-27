@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include "plist.h"
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
@@ -13,6 +14,17 @@ static void die(char* message){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
+static int isLastAnd(char *input) {
+	if (input == NULL) {
+		return 0;
+	}
+	int inputLength = strlen(input);
+	if (input[inputLength - 1] == '&') {
+		return 1;
+	}
+	return 0;
+}
+	
 /* Draws the current directory for the terminal
  * the buffer stores the directory name as a char *
  * and reallocates itself, if the buffer is to small 
@@ -110,12 +122,36 @@ static int changeDirectory(char **args) {
 	}
 	return 0;
 }
+static int checkIfDied(pid_t pid, const char *cmdline) {
+	int exitStatus = -1;
+	pid_t childPid = waitpid(pid, &exitStatus, WNOHANG);
+	if (childPid == -1) {
+			die("waitpid");
+		}
+		removeElement(pid, NULL, 0);
+		if (WIFEXITED(exitStatus)) {
+				int exitMessage = WEXITSTATUS(exitStatus);
+				printf("EXITSTATUS [%d]\n", exitMessage);			//Todo: another fomat
+		}
+		else {
+			fprintf(stderr, "Process didn't execute properly\n");		
+		}	
+	return 0;
+}
 int main(int argc, char** argv){
 
 	while(1){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
+			
+		//Hence the original input will get destroyed while creating the args
+		//we need another instance to save in the plist, so we copy the string on the stack
+		//for easier memory management
+		char tmp[strlen(input)+1];
+		char *inputToStore = tmp;
+		strcpy(inputToStore, input);
+
 		char **args = createArgs(input);
 		if (args == NULL || args[0] == NULL) {
 			continue;
@@ -141,14 +177,31 @@ int main(int argc, char** argv){
 
 		}
 		//parent process
+		//First add the pid of the child (which ist the currentProcessID) and the command line to the plist
+		insertElement(processID, inputToStore);
+		int shouldRunInBackground = isLastAnd(inputToStore);
+		shouldRunInBackground++;
+		if (shouldRunInBackground == 1) {
+			sleep(1);
+			insertElement(processID, inputToStore);
+			walkList(checkIfDied);
+			
+			continue;
+		}
+		//walkList puts in all pid and cmdlines and
+		//--> we check if some of the processes died
+		walkList(checkIfDied);
+		//Now we wait for our process
 		int exitStatus;
+		//now we have to walk through the list and check if processes ended
+
 		pid_t childPid = waitpid(-1,&exitStatus, 0);
 		if (childPid == -1) {
 			die("waitpid");
 		}
 		if (WIFEXITED(exitStatus)) {
 				int exitMessage = WEXITSTATUS(exitStatus);
-				printf("EXITSTATUS [%d]\n", exitMessage);
+				printf("EXITSTATUS [%d]\n", exitMessage);			//Todo: another fomat
 		}
 		else {
 			fprintf(stderr, "Process didn't execute properly\n");		

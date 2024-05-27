@@ -16,8 +16,20 @@ static struct qel {
 } *head;
 
 void walkList(int (*callback) (pid_t, const char *)) {
-	// TODO: implement me
+	if (head == 0) {
+		return;
+	}
+	struct qel *current = head;
+	while(current != NULL) {
+		//we cache the next before executing callback because the callback function might change the list (removeElement)
+		struct qel *next = current->next;
+		if (callback(current->pid, current->cmdLine) != 0) {
+			return;
+		}
+		current = next;
+	}
 }
+
 
 int insertElement(pid_t pid, const char *cmdLine) {
 	struct qel *lauf = head;
