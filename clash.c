@@ -20,6 +20,7 @@ static int isLastAnd(char *input) {
 	}
 	int inputLength = strlen(input);
 	if (input[inputLength - 1] == '&') {
+		input[inputLength-1] = '\0';				//remove And in the args
 		return 1;
 	}
 	return 0;
@@ -128,15 +129,30 @@ static int checkIfDied(pid_t pid, const char *cmdline) {
 	if (childPid == -1) {
 			die("waitpid");
 		}
-		removeElement(pid, NULL, 0);
 		if (WIFEXITED(exitStatus)) {
+				//if we remove the elment the given cmdLine will get deleted
+				int cmdLineLength = strlen(cmdline);
+				char savedCmdl[cmdLineLength +1];
+				removeElement(pid, savedCmdl, cmdLineLength +1);
 				int exitMessage = WEXITSTATUS(exitStatus);
-				printf("EXITSTATUS [%d]\n", exitMessage);			//Todo: another fomat
+				printf("EXITSTATUS [%s] = %d\n",savedCmdl, exitMessage);			//Todo: another fomat
 		}
 		else {
-			fprintf(stderr, "Process didn't execute properly\n");		
+			fprintf(stderr, "%s: still running\n", cmdline);		
 		}	
 	return 0;
+}
+static void shortSleep(int millisecond) {
+	if (millisecond >= 10) {
+		return;
+	}
+	struct timespec rgtp = {
+		.tv_sec = 0,
+		.tv_nsec = (long)(millisecond * 100000000)};
+	if (nanosleep(&rgtp, NULL) < 0) {
+		perror("nanosleep");
+		exit(EXIT_FAILURE);
+	}
 }
 int main(int argc, char** argv){
 
@@ -144,14 +160,15 @@ int main(int argc, char** argv){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
 		getInput(input);
-			
+		int shouldRunInBackground = isLastAnd(input);  //checks if last character is & and removes it
+
+				
 		//Hence the original input will get destroyed while creating the args
 		//we need another instance to save in the plist, so we copy the string on the stack
 		//for easier memory management
 		char tmp[strlen(input)+1];
 		char *inputToStore = tmp;
 		strcpy(inputToStore, input);
-
 		char **args = createArgs(input);
 		if (args == NULL || args[0] == NULL) {
 			continue;
@@ -177,35 +194,30 @@ int main(int argc, char** argv){
 
 		}
 		//parent process
-		//First add the pid of the child (which ist the currentProcessID) and the command line to the plist
-		insertElement(processID, inputToStore);
-		int shouldRunInBackground = isLastAnd(inputToStore);
-		shouldRunInBackground++;
 		if (shouldRunInBackground == 1) {
-			sleep(1);
+			shortSleep(2);						//for shorter wait time usleep()
 			insertElement(processID, inputToStore);
 			walkList(checkIfDied);
-			
+			free(args);	
 			continue;
 		}
-		//walkList puts in all pid and cmdlines and
-		//--> we check if some of the processes died
-		walkList(checkIfDied);
-		//Now we wait for our process
+				//Now we wait for our process
 		int exitStatus;
-		//now we have to walk through the list and check if processes ended
-
-		pid_t childPid = waitpid(-1,&exitStatus, 0);
+		pid_t childPid = waitpid(processID,&exitStatus, 0);
 		if (childPid == -1) {
 			die("waitpid");
 		}
 		if (WIFEXITED(exitStatus)) {
 				int exitMessage = WEXITSTATUS(exitStatus);
-				printf("EXITSTATUS [%d]\n", exitMessage);			//Todo: another fomat
+				printf("EXITSTATUS [%s] = %d\n", inputToStore,exitMessage);
 		}
 		else {
 			fprintf(stderr, "Process didn't execute properly\n");		
 		}
+		//now we have to walk through the list and check if processes ended
+		//walkList puts in all pid and cmdlines and
+		//--> we check if some of the processes died
+		walkList(checkIfDied);
 		free(args);
 	}
 
