@@ -88,7 +88,6 @@ static char **createArgs(char *input) {
 	//if a string doesn't contain a token it just returns the original string the first time
 	if (command == NULL) {
 		free(args);
-		fprintf(stderr, "Error input was empty...continue\n");
 		return NULL;
 	}
 	args[0] = command;
@@ -113,7 +112,9 @@ static char **createArgs(char *input) {
 
 static int changeDirectory(char **args) {
 	if (args == NULL || args[1] == NULL) {
-		fprintf(stderr, "Error can't cd without new Path\n");
+		if (fprintf(stderr, "Usage: cd <directory>\n") < 0) {
+			die("fprintf");
+		}
 		return -1;
 	}
 	if  (chdir(args[1]) == -1) {
@@ -129,19 +130,30 @@ static int checkIfDied(pid_t pid, const char *cmdline) {
 	if (childPid == -1) {
 			die("waitpid");
 		}
+		//first check if the cild is still running
+		if (childPid == 0){
+			return 0;
+		}
+		//Now check if the child stopped correctly with an exit status
+		int cmdLineLength = strlen(cmdline);
+		char savedCmdl[cmdLineLength +1];
+		removeElement(pid, savedCmdl, cmdLineLength +1);
 		if (WIFEXITED(exitStatus)) {
 				//if we remove the elment the given cmdLine will get deleted
-				int cmdLineLength = strlen(cmdline);
-				char savedCmdl[cmdLineLength +1];
-				removeElement(pid, savedCmdl, cmdLineLength +1);
 				int exitMessage = WEXITSTATUS(exitStatus);
-				printf("EXITSTATUS [%s] = %d\n",savedCmdl, exitMessage);			//Todo: another fomat
+				if (printf("EXITSTATUS [%s] = %d\n",savedCmdl, exitMessage)< 0) {
+					die("printf");
+				}
+				if (fflush(stdout) < 0) { die("fflush");}
 		}
 		else {
-			fprintf(stderr, "%s: still running\n", cmdline);		
-		}	
+			if (printf("No exitstatus [%s]\n", savedCmdl) < 0 ) {
+				die("printf");
+			}
+		}
 	return 0;
 }
+//Waits for millisecond, when sleep() is to long
 static void shortSleep(int millisecond) {
 	if (millisecond >= 10) {
 		return;
@@ -195,6 +207,11 @@ int main(int argc, char** argv){
 		}
 		//parent process
 		if (shouldRunInBackground == 1) {
+			//In many causes the next showPromt() is faster than
+			//the execution of the last command. Leeds to a bug that 
+			//looks like the execution output is the next command you want to execute
+			//To fix this we delay the parent process a few milliseconds
+			//(seconds are to long and influenz the usability)
 			shortSleep(2);						//for shorter wait time usleep()
 			insertElement(processID, inputToStore);
 			walkList(checkIfDied);
@@ -209,10 +226,14 @@ int main(int argc, char** argv){
 		}
 		if (WIFEXITED(exitStatus)) {
 				int exitMessage = WEXITSTATUS(exitStatus);
-				printf("EXITSTATUS [%s] = %d\n", inputToStore,exitMessage);
+				if (printf("EXITSTATUS [%s] = %d\n", inputToStore,exitMessage)< 0) {
+					die("printf");
+				}
 		}
 		else {
-			fprintf(stderr, "Process didn't execute properly\n");		
+			if (printf("No exitstatus [%s]\n", inputToStore) < 0 ) {
+				die("printf");
+			}
 		}
 		//now we have to walk through the list and check if processes ended
 		//walkList puts in all pid and cmdlines and

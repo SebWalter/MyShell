@@ -58,7 +58,7 @@ int insertElement(pid_t pid, const char *cmdLine) {
 	lauf->pid  = pid;
 	lauf->next = NULL;
 
-	/* Einhaengen des neuen Elements */
+	/* Einhaengen des neuen lements */
 	if (schlepp == NULL) {
 		head = lauf;
 	} else {
