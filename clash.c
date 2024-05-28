@@ -10,14 +10,10 @@
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
-
-// Prints errors set in errno and exits programm
 static void die(char* message){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
-
-// Checks if last character is '&' and removes it
 static int isLastAnd(char *input) {
 	if (input == NULL) {
 		return 0;
@@ -47,7 +43,7 @@ static void showPrompt(){
 			break;
 		}
 		if(errno != ERANGE){				//only acceptable error, that the buf wasnt big 
-			die("getcwd");				// enough, all else are fatal (Aber warum dann die() wenn der error acceptable ist?)
+			die("getcwd");				// enough, all else are fatal
 		}
 		capacity *= 1.5;
 	}
@@ -59,7 +55,6 @@ static void showPrompt(){
 	}
 	free(buf);
 }
-<<<<<<< HEAD
 static void clearStdin() {
 		while (1) {
 		int readC = fgetc(stdin);
@@ -78,11 +73,6 @@ static void clearStdin() {
 }
 // Reads the command from stdin as saves it in the char * it receives
 static int getInput(char* buf){
-=======
-
-// Reads the command from stdin and saves it in the char * it receives
-static void getInput(char* buf){
->>>>>>> 59a6e0b03f89ef4880ca1c854072f9a6bc3d4e94
 	if(fgets(buf, MAX_INPUT_LENGTH + 1, stdin) == NULL){	
 		if(ferror(stdin)){
 			die("fgets");
@@ -101,7 +91,6 @@ static void getInput(char* buf){
 	clearStdin();
 	return 1;
 }
-
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
@@ -155,7 +144,6 @@ static int changeDirectory(char **args) {
 	}
 	return 0;
 }
-
 static int checkIfDied(pid_t pid, const char *cmdline) {
 	int exitStatus = -1;
 	pid_t childPid = waitpid(pid, &exitStatus, WNOHANG);
@@ -185,8 +173,7 @@ static int checkIfDied(pid_t pid, const char *cmdline) {
 		}
 	return 0;
 }
-
-//Waits for millisecond, when sleep() is too long
+//Waits for millisecond, when sleep() is to long
 static void shortSleep(int millisecond) {
 	if (millisecond >= 10) {
 		return;
@@ -199,16 +186,12 @@ static void shortSleep(int millisecond) {
 		exit(EXIT_FAILURE);
 	}
 }
-<<<<<<< HEAD
 static int printJobs(pid_t pid,const char *cmdline) {
 	if(printf("%d %s\n", pid, cmdline) < 0) {
 		die("printf");
 	}
 	return 0;
 }
-=======
-
->>>>>>> 59a6e0b03f89ef4880ca1c854072f9a6bc3d4e94
 int main(int argc, char** argv){
 
 	while(1){
@@ -218,14 +201,8 @@ int main(int argc, char** argv){
 			continue;
 		}
 		int shouldRunInBackground = isLastAnd(input);  //checks if last character is & and removes it
-<<<<<<< HEAD
 		
 		//Hence the original input will get destroyed while creating the args
-=======
-
-				
-		//Because the original input will get destroyed while creating the args
->>>>>>> 59a6e0b03f89ef4880ca1c854072f9a6bc3d4e94
 		//we need another instance to save in the plist, so we copy the string on the stack
 		//for easier memory management
 		char tmp[strlen(input)+1];
