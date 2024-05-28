@@ -201,8 +201,7 @@ int main(int argc, char** argv){
 			//When execvp fails, it don't free the heap memory. 
 			//Because it was cloned during fork() i have to free it in the child and parent
 			free(args);
-			//the exec function only returns when an error occurs -> error handling
-			die("execvp");
+			exit(EXIT_FAILURE);
 
 		}
 		//parent process
