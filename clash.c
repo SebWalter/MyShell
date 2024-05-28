@@ -10,17 +10,19 @@
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
+//prints errors set in errno and exits program
 static void die(char* message){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
+//checks if last character is '&' and removes it
 static int isLastAnd(char *input) {
 	if (input == NULL) {
 		return 0;
 	}
 	int inputLength = strlen(input);
 	if (input[inputLength - 1] == '&') {
-		input[inputLength-1] = '\0';				//remove And in the args
+		input[inputLength-1] = '\0';				//remove & in the args
 		return 0;
 	}
 	return 1;
@@ -43,7 +45,8 @@ static void showPrompt(){
 			break;
 		}
 		if(errno != ERANGE){				//only acceptable error, that the buf wasnt big 
-			die("getcwd");				// enough, all else are fatal
+			die("getcwd");				// enough, all else are fatal, thats why its != because all 
+								// others are fatal, then we die
 		}
 		capacity *= 1.5;
 	}
@@ -71,7 +74,7 @@ static void clearStdin() {
 	}
 	return;
 }
-// Reads the command from stdin as saves it in the char * it receives
+// Reads the command from stdin and saves it in the char * it receives
 static int getInput(char* buf){
 	if(fgets(buf, MAX_INPUT_LENGTH + 1, stdin) == NULL){	
 		if(ferror(stdin)){
@@ -150,7 +153,7 @@ static int checkIfDied(pid_t pid, const char *cmdline) {
 	if (childPid == -1) {
 			die("waitpid");
 		}
-		//first check if the cild is still running
+		//first check if the child is still running
 		if (childPid == 0){
 			return 0;
 		}
@@ -202,7 +205,7 @@ int main(int argc, char** argv){
 		}
 		int shouldRunInBackground = isLastAnd(input);  //checks if last character is & and removes it
 		
-		//Hence the original input will get destroyed while creating the args
+		//Because the original input will get destroyed while creating the args
 		//we need another instance to save in the plist, so we copy the string on the stack
 		//for easier memory management
 		char tmp[strlen(input)+1];
