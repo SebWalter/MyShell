@@ -21,9 +21,9 @@ static int isLastAnd(char *input) {
 	int inputLength = strlen(input);
 	if (input[inputLength - 1] == '&') {
 		input[inputLength-1] = '\0';				//remove And in the args
-		return 1;
+		return 0;
 	}
-	return 0;
+	return 1;
 }
 	
 /* Draws the current directory for the terminal
@@ -32,13 +32,13 @@ static int isLastAnd(char *input) {
  */
 static void showPrompt(){
 	int capacity = INITIAL_CWD_CAPACITY;
-	char* buf = NULL;
+	char *buf = NULL;
 	while(1){
 		buf = realloc(buf, sizeof(char)*capacity);	//dynamically increase buf size till it is enough
 		if(buf == NULL){				//to fit the current working directory
 			die("realloc");
 		}
-		char* retVal = getcwd(buf, capacity);
+		char *retVal = getcwd(buf, capacity);
 		if(retVal != NULL){				//check if getcwd failed
 			break;
 		}
@@ -55,21 +55,41 @@ static void showPrompt(){
 	}
 	free(buf);
 }
+static void clearStdin() {
+		while (1) {
+		int readC = fgetc(stdin);
+		if (readC == EOF) {
+			if (ferror(stdin) != 0) {
+				perror("fgetc");
+				exit(EXIT_FAILURE);
+			}
+			return;
+		}
+		if (readC == '\n') {
+			return;
+		}
+	}
+	return;
+}
 // Reads the command from stdin as saves it in the char * it receives
-static void getInput(char* buf){
+static int getInput(char* buf){
 	if(fgets(buf, MAX_INPUT_LENGTH + 1, stdin) == NULL){	
 		if(ferror(stdin)){
 			die("fgets");
 		}
 		else{
-			exit(EXIT_SUCCESS);				//Was ist das? Dann exited ja das programm?
+			exit(EXIT_SUCCESS);
 		}
 	}
 	//remove new line character
-	char *newLine = strchr(buf, '\n');
-	if (newLine != NULL) {
-		*newLine = '\0';
+	int bufLength = strlen(buf);
+	if (buf[bufLength -1] == '\n') {
+		buf[bufLength-1] = '\0';
+		return 0;
 	}
+	//If in the string is no /n at the end the input string was to long
+	clearStdin();
+	return 1;
 }
 /* creates the argv for the command execution, out of the
  * input pointer it receives
@@ -166,15 +186,22 @@ static void shortSleep(int millisecond) {
 		exit(EXIT_FAILURE);
 	}
 }
+static int printJobs(pid_t pid,const char *cmdline) {
+	if(printf("%d %s\n", pid, cmdline) < 0) {
+		die("printf");
+	}
+	return 0;
+}
 int main(int argc, char** argv){
 
 	while(1){
 		showPrompt();
 		char input[MAX_INPUT_LENGTH + 1];
-		getInput(input);
+		if (getInput(input) != 0) {
+			continue;
+		}
 		int shouldRunInBackground = isLastAnd(input);  //checks if last character is & and removes it
-
-				
+		
 		//Hence the original input will get destroyed while creating the args
 		//we need another instance to save in the plist, so we copy the string on the stack
 		//for easier memory management
@@ -188,6 +215,10 @@ int main(int argc, char** argv){
 		if (strcmp(args[0], "cd") == 0) {
 			changeDirectory(args);
 			free(args);
+			continue;
+		}
+		if (strcmp(args[0], "jobs") == 0) {
+			walkList(printJobs);
 			continue;
 		}
 		pid_t processID;
@@ -205,7 +236,7 @@ int main(int argc, char** argv){
 
 		}
 		//parent process
-		if (shouldRunInBackground == 1) {
+		if (shouldRunInBackground == 0) {
 			//In many causes the next showPromt() is faster than
 			//the execution of the last command. Leeds to a bug that 
 			//looks like the execution output is the next command you want to execute
