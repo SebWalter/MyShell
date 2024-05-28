@@ -10,10 +10,13 @@
 #define INITIAL_CWD_CAPACITY 64
 #define MAX_INPUT_LENGTH 1337
 #define DEFAULT_ARGS 5
+
+
 static void die(char* message){
 	perror(message);
 	exit(EXIT_FAILURE);
 }
+
 static int isLastAnd(char *input) {
 	if (input == NULL) {
 		return 0;
@@ -42,7 +45,7 @@ static void showPrompt(){
 			break;
 		}
 		if(errno != ERANGE){				//only acceptable error, that the buf wasnt big 
-			die("getcwd");				// enough, all else are fatal
+			die("getcwd");				// enough, all else are fatal (Aber warum dann die() wenn der error acceptable ist?)
 		}
 		capacity *= 1.5;
 	}
@@ -54,7 +57,8 @@ static void showPrompt(){
 	}
 	free(buf);
 }
-// Reads the command from stdin as saves it in the char * it receives
+
+// Reads the command from stdin and saves it in the char * it receives
 static void getInput(char* buf){
 	if(fgets(buf, MAX_INPUT_LENGTH + 1, stdin) == NULL){	
 		if(ferror(stdin)){
@@ -70,6 +74,7 @@ static void getInput(char* buf){
 		*newLine = '\0';
 	}
 }
+
 /* creates the argv for the command execution, out of the
  * input pointer it receives
  */
@@ -122,6 +127,7 @@ static int changeDirectory(char **args) {
 	}
 	return 0;
 }
+
 static int checkIfDied(pid_t pid, const char *cmdline) {
 	int exitStatus = -1;
 	pid_t childPid = waitpid(pid, &exitStatus, WNOHANG);
@@ -138,6 +144,7 @@ static int checkIfDied(pid_t pid, const char *cmdline) {
 		}	
 	return 0;
 }
+
 int main(int argc, char** argv){
 
 	while(1){
